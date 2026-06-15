@@ -1,0 +1,67 @@
+# ===== Secrets — never commit =====
+.env
+**/.env
+*.key
+*.pem
+*.p12
+*.keystore
+**/serviceAccount*.json
+**/firebase*.json
+**/client_secret*.json
+*client_secret*
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+venv/
+.venv/
+env/
+
+# ===== Runtime / generated data (backend) =====
+backend/dermai.db
+*.db
+*.sqlite
+*.sqlite3
+backend/reports/
+backend/uploads/
+backend/licenses/
+
+# ===== Node / Expo / native (mobile) =====
+**/node_modules/
+dermai-rn/.expo/
+dermai-rn/dist/
+dermai-rn/web-build/
+dermai-rn/android/
+dermai-rn/ios/
+mobile/build/
+.gradle/
+*.log
+
+# ===== Datasets & checkpoints (too large for git) =====
+# NOTE: trained model weights (*.pth) are tracked via Git LFS — see .gitattributes
+/final dataset/
+/clear skin dataset/
+/zip orginal data/
+/checkpoints/
+/testing photos/
+**/Augmented dataset/
+**/prepared/
+
+# Archives (dataset/document downloads — keep out of the repo)
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+
+# ===== Editor / OS / tooling =====
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

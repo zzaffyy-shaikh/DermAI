@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "dermai-rn",
+    "slug": "dermai-rn",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "dermai",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "DermAI uses the camera for video consultations with a doctor.",
+        "NSMicrophoneUsageDescription": "DermAI uses the microphone for video consultations with a doctor."
+      }
+    },
+    "android": {
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.zzaffyy.dermairn"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "392c7aa0-287b-4b83-a9ea-4c608f32e23a"
+      }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
+  }
+}

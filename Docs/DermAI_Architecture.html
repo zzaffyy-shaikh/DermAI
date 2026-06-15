@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DermAI — System Architecture</title>
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#f1f5f9; --card:#ffffff;
+    --patient:#2563eb; --patient-bg:#eff6ff;
+    --doctor:#0d9488; --doctor-bg:#f0fdfa;
+    --admin:#7c3aed; --admin-bg:#f5f3ff;
+    --auth:#dc2626; --auth-bg:#fef2f2;
+    --gw:#0369a1; --gw-bg:#f0f9ff;
+    --ai:#ea580c; --ai-bg:#fff7ed;
+    --llm:#db2777; --llm-bg:#fdf2f8;
+    --be:#475569; --be-bg:#f8fafc;
+    --consult:#16a34a; --consult-bg:#f0fdf4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);padding:32px 20px;line-height:1.4}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{text-align:center;margin-bottom:8px}
+  header h1{font-size:34px;letter-spacing:-.5px}
+  header h1 span{color:var(--patient)}
+  header p{color:var(--muted);font-size:15px;margin-top:6px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:18px 0 26px}
+  .legend span{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .layer-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--muted);text-align:center;margin:0 0 12px}
+
+  /* generic band */
+  .band{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:20px;margin-bottom:6px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+  .band.tinted{padding:18px}
+
+  /* role columns */
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .role{border-radius:16px;padding:18px;border:1.5px solid;background:var(--card)}
+  .role h3{font-size:17px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .login{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    color:#fff;padding:4px 10px;border-radius:999px;margin:8px 0 12px}
+  .role .app{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px}
+  .role ul{list-style:none;font-size:12.5px;color:#334155}
+  .role li{padding:3px 0 3px 16px;position:relative}
+  .role li::before{content:"›";position:absolute;left:2px;font-weight:700}
+  .p .role{border-color:#bfdbfe;background:var(--patient-bg)} .p h3{color:var(--patient)}
+  .p .login{background:var(--patient)} .p li::before{color:var(--patient)}
+  .d .role{border-color:#99f6e4;background:var(--doctor-bg)} .d h3{color:var(--doctor)}
+  .d .login{background:var(--doctor)} .d li::before{color:var(--doctor)}
+  .a .role{border-color:#ddd6fe;background:var(--admin-bg)} .a h3{color:var(--admin)}
+  .a .login{background:var(--admin)} .a li::before{color:var(--admin)}
+
+  /* arrows */
+  .arrow{display:flex;justify-content:center;align-items:center;height:34px;color:var(--line)}
+  .arrow svg{width:26px;height:26px}
+  .arrow.label{gap:10px}
+  .arrow .t{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.5px}
+
+  /* node rows */
+  .row{display:grid;gap:14px}
+  .row.c2{grid-template-columns:repeat(2,1fr)}
+  .row.c3{grid-template-columns:repeat(3,1fr)}
+  .row.c4{grid-template-columns:repeat(4,1fr)}
+  .node{border-radius:13px;padding:14px;text-align:center;border:1.5px solid}
+  .node .h{font-size:14px;font-weight:700;margin-bottom:3px}
+  .node .s{font-size:11.5px;color:var(--muted)}
+  .node .tag{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    display:inline-block;margin-top:8px;padding:2px 8px;border-radius:6px}
+
+  .auth{border-color:#fecaca;background:var(--auth-bg)} .auth .h{color:var(--auth)}
+  .gw{border-color:#bae6fd;background:var(--gw-bg)} .gw .h{color:var(--gw)}
+  .ai{border-color:#fed7aa;background:var(--ai-bg)} .ai .h{color:var(--ai)}
+  .llm{border-color:#fbcfe8;background:var(--llm-bg)} .llm .h{color:var(--llm)}
+  .be{border-color:#e2e8f0;background:var(--be-bg)} .be .h{color:var(--be)}
+  .consult{border-color:#bbf7d0;background:var(--consult-bg)} .consult .h{color:var(--consult)}
+  .tag.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+
+  .note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:14px;
+    background:#fffbeb;border:1px dashed #fde68a;border-radius:10px;padding:10px 14px}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:24px}
+  @media print{body{background:#fff;padding:0}.band{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span>Derm</span>AI — System Architecture</h1>
+    <p>Skin-disease screening · ConvNeXt-Tiny classifier · MobileSAM localization · LLM cross-questioning · Doctor consultation</p>
+  </header>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--patient)"></i>Patient</span>
+    <span><i class="dot" style="background:var(--doctor)"></i>Doctor</span>
+    <span><i class="dot" style="background:var(--admin)"></i>Administrator</span>
+    <span><i class="dot" style="background:var(--auth)"></i>Auth / RBAC</span>
+    <span><i class="dot" style="background:var(--gw)"></i>API Gateway</span>
+    <span><i class="dot" style="background:var(--ai)"></i>AI Pipeline</span>
+    <span><i class="dot" style="background:var(--llm)"></i>LLM</span>
+    <span><i class="dot" style="background:var(--be)"></i>Backend</span>
+    <span><i class="dot" style="background:var(--consult)"></i>Consultation</span>
+  </div>
+
+  <!-- ============ LAYER 1: ROLES + LOGIN ============ -->
+  <p class="layer-label">1 · Users &amp; Role-Based Login</p>
+  <div class="roles">
+    <div class="p"><div class="role">
+      <h3>🧑 Patient</h3>
+      <span class="login">🔐 Patient Login</span>
+      <div class="app">Flutter App + Web App</div>
+      <ul>
+        <li>Sign up / log in</li>
+        <li>Capture or upload skin image</li>
+        <li>Tap affected body region</li>
+        <li>Answer LLM symptom questions</li>
+        <li>View result &amp; advice</li>
+        <li>Request doctor consultation</li>
+        <li>View past sessions</li>
+      </ul>
+    </div></div>
+
+    <div class="d"><div class="role">
+      <h3>👨‍⚕️ Doctor</h3>
+      <span class="login">🔐 Doctor Login</span>
+      <div class="app">Doctor Dashboard (Web)</div>
+      <ul>
+        <li>Log in (verified account)</li>
+        <li>View patient case queue</li>
+        <li>Read AI report + transcript</li>
+        <li>Live video / async chat</li>
+        <li>Write notes &amp; advice</li>
+        <li>Set availability status</li>
+      </ul>
+    </div></div>
+
+    <div class="a"><div class="role">
+      <h3>🛡️ Administrator</h3>
+      <span class="login">🔐 Admin Login</span>
+      <div class="app">Admin Panel (Web)</div>
+      <ul>
+        <li>Secure admin log in</li>
+        <li>Manage patients &amp; doctors</li>
+        <li>Verify / approve doctor credentials</li>
+        <li>Usage &amp; diagnosis analytics</li>
+        <li>Monitor model performance</li>
+        <li>Manage disease info &amp; question banks</li>
+        <li>Audit logs &amp; compliance</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <div class="arrow label">
+    <span class="t">credentials</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+    <span class="t">all 3 roles authenticate centrally</span>
+  </div>
+
+  <!-- ============ LAYER 2: AUTH / RBAC ============ -->
+  <p class="layer-label">2 · Authentication &amp; Authorization</p>
+  <div class="band tinted">
+    <div class="row c2">
+      <div class="node auth">
+        <div class="h">🔥 Firebase Authentication</div>
+        <div class="s">Email / Google sign-in · issues ID token for every login</div>
+      </div>
+      <div class="node auth">
+        <div class="h">🧭 Role-Based Access Control (RBAC)</div>
+        <div class="s">Token carries role claim → routes to Patient / Doctor / Admin scope &amp; permissions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+  </div>
+
+  <!-- ============ LAYER 3: API GATEWAY ============ -->
+  <p class="layer-label">3 · API Gateway</p>
+  <div class="band tinted">
+    <div class="node gw">
+      <div class="h">⚡ FastAPI Gateway &nbsp;·&nbsp; REST + WebSocket</div>
+      <div class="s">Verifies token on every request · routes by role · streams the LLM chat</div>
+      <div class="s" style="margin-top:6px">/diagnose &nbsp; · &nbsp; /chat (WS) &nbsp; · &nbsp; /finalize &nbsp; · &nbsp; /consult &nbsp; · &nbsp; /admin &nbsp; · &nbsp; /history</div>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+  </div>
+
+  <!-- ============ LAYER 4: AI PIPELINE ============ -->
+  <p class="layer-label">4 · AI Diagnostic Pipeline &nbsp;(GPU server)</p>
+  <div class="band tinted">
+    <div class="row c4">
+      <div class="node ai">
+        <div class="h">🖼️ Preprocess</div>
+        <div class="s">resize · normalize · blur check</div>
+      </div>
+      <div class="node ai">
+        <div class="h">🧠 ConvNeXt-Tiny</div>
+        <div class="s">classifies the <b>whole image</b> → disease + confidence + entropy</div>
+        <div class="tag warn">whole image, not a crop</div>
+      </div>
+      <div class="node ai">
+        <div class="h">✂️ MobileSAM</div>
+        <div class="s">lesion mask → overlay + area / severity</div>
+        <div class="tag warn">overlay only</div>
+      </div>
+      <div class="node ai">
+        <div class="h">🚦 Decision Gate</div>
+        <div class="s">Healthy · Out-of-distribution · Normal</div>
+      </div>
+    </div>
+    <div class="arrow" style="height:26px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+    </div>
+    <div class="node ai">
+      <div class="h">📋 Prompt Builder → Clinical Brief (JSON)</div>
+      <div class="s">{ disease, confidence, body_region (from UI tap), severity, image_quality }</div>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+  </div>
+
+  <!-- ============ LAYER 5: LLM ============ -->
+  <p class="layer-label">5 · LLM Cross-Questioning</p>
+  <div class="band tinted">
+    <div class="row c2">
+      <div class="node llm">
+        <div class="h">🔁 LLM Orchestrator</div>
+        <div class="s">State machine: reassure (healthy) · triage (OOD) · ask ≤4 clinical questions · fuse image + answers</div>
+      </div>
+      <div class="node llm">
+        <div class="h">💬 LLM Engine</div>
+        <div class="s">OpenAI API (demo) / local Llama 3 · Mistral — receives the brief, <b>never the raw image</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow label">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+    <span class="t">persist &amp; serve</span>
+  </div>
+
+  <!-- ============ LAYER 6: BACKEND + CONSULT ============ -->
+  <p class="layer-label">6 · Backend Services &amp; Consultation</p>
+  <div class="band tinted">
+    <div class="row c3" style="margin-bottom:14px">
+      <div class="node be"><div class="h">🗂️ Firestore</div><div class="s">sessions · chats · diagnoses · doctor queue · admin data</div></div>
+      <div class="node be"><div class="h">📦 Cloud Storage</div><div class="s">uploaded images (private per-user)</div></div>
+      <div class="node be"><div class="h">🔔 Cloud Messaging</div><div class="s">push: doctor reply / consult start</div></div>
+    </div>
+    <div class="row c2">
+      <div class="node consult"><div class="h">🎥 Twilio / Jitsi</div><div class="s">live video consultation (patient ↔ doctor)</div></div>
+      <div class="node consult"><div class="h">💬 Async Chat</div><div class="s">message-based consult + AI report handoff</div></div>
+    </div>
+  </div>
+
+  <div class="note">
+    ⚠️ <b>Build note:</b> ConvNeXt was trained on whole images, so MobileSAM is used for the visual overlay &amp; severity only — never as the classifier's input.
+    Confidence / OOD thresholds in the Decision Gate must be calibrated on a <b>leakage-free</b> validation set (split <i>before</i> augmenting).
+    Body region is taken from the patient's tap, not a model.
+  </div>
+
+  <footer>DermAI · Hamdard University · 8 classes: Acne · Atopic Dermatitis · Eczema · Healthy · Hyper Pigmentation · Melanoma · Psoriasis · Seborrheic Keratoses</footer>
+
+</div>
+</body>
+</html>

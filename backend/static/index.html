@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DermAI · Test Console</title>
+<style>
+  :root{
+    --ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9;--card:#fff;
+    --patient:#2563eb;--doctor:#0d9488;--admin:#7c3aed;--ok:#16a34a;--warn:#ea580c;--err:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  header{background:#0f172a;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:18px;letter-spacing:-.3px}
+  header h1 span{color:#5e8bff}
+  header .who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px}
+  header input{background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
+  .wrap{max-width:1100px;margin:18px auto;padding:0 16px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:9px 18px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:600;font-size:13px}
+  .tab.active{color:#fff;border-color:transparent}
+  .tab.p.active{background:var(--patient)} .tab.d.active{background:var(--doctor)} .tab.a.active{background:var(--admin)}
+  .panel{display:none} .panel.active{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+  select,input[type=text],input[type=file],textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit}
+  button{background:var(--patient);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-weight:600;cursor:pointer;font-size:13px}
+  button:hover{filter:brightness(.95)} button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button.sm{padding:6px 12px;font-size:12px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row>*{flex:1;min-width:160px}
+  .preview{max-height:200px;border-radius:10px;margin-top:10px;display:none;border:1px solid var(--line)}
+  /* brief */
+  .brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:6px}
+  .stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stat .v{font-size:17px;font-weight:700;margin-top:2px}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;color:#fff}
+  .b-normal{background:var(--ok)} .b-ood{background:var(--warn)} .b-healthy{background:var(--patient)} .b-urgent{background:var(--err)}
+  /* chat */
+  .chat{border:1px solid var(--line);border-radius:12px;padding:12px;max-height:340px;overflow-y:auto;background:#f8fafc;margin-top:8px}
+  .msg{margin:6px 0;display:flex}
+  .msg .bubble{padding:9px 13px;border-radius:14px;max-width:78%;font-size:13px;line-height:1.4;white-space:pre-wrap}
+  .msg.assistant .bubble{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg.user{justify-content:flex-end} .msg.user .bubble{background:var(--patient);color:#fff;border-bottom-right-radius:4px}
+  .done{font-size:12px;color:var(--ok);font-weight:700;text-align:center;margin-top:8px}
+  pre.out{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-size:12px;overflow:auto;max-height:260px;white-space:pre-wrap}
+  .list .item{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:12px}
+  .err{color:var(--err);font-size:12.5px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Derm</span>AI · Test Console</h1>
+  <div class="who">
+    <span>User ID</span>
+    <input id="uid" value="u1" style="width:90px">
+    <span id="roleTag" class="badge b-normal">patient</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab p active" data-role="patient" data-panel="patient">🧑 Patient</div>
+    <div class="tab d" data-role="doctor" data-panel="doctor">👨‍⚕️ Doctor</div>
+    <div class="tab a" data-role="admin" data-panel="admin">🛡️ Admin</div>
+  </div>
+
+  <!-- ============ PATIENT ============ -->
+  <section class="panel patient active">
+    <div class="card">
+      <h2>1 · Upload &amp; Diagnose</h2>
+      <div class="row">
+        <div>
+          <label>Skin image</label>
+          <input type="file" id="image" accept="image/*">
+        </div>
+        <div style="flex:0 0 200px">
+          <label>Body region</label>
+          <select id="region">
+            <option value="">— not provided —</option>
+            <option>face</option><option>scalp</option><option>neck</option>
+            <option>chest</option><option>back</option><option>arm</option>
+            <option>forearm</option><option>hand</option><option>abdomen</option>
+            <option>leg</option><option>foot</option>
+          </select>
+        </div>
+        <div style="flex:0 0 140px"><button id="btnDiagnose">Diagnose</button></div>
+      </div>
+      <img id="preview" class="preview">
+      <div id="diagErr" class="err"></div>
+    </div>
+
+    <div class="card" id="briefCard" style="display:none">
+      <h2>2 · Result <span id="modeBadge"></span> <span id="urgentBadge"></span></h2>
+      <div class="brief" id="briefGrid"></div>
+    </div>
+
+    <div class="card" id="chatCard" style="display:none">
+      <h2>3 · Cross-questioning</h2>
+      <div class="chat" id="chat"></div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1"><input type="text" id="answer" placeholder="Type your answer..."></div>
+        <div style="flex:0 0 110px"><button id="btnSend">Send</button></div>
+      </div>
+      <div id="doneBox"></div>
+    </div>
+
+    <div class="card" id="consultCard" style="display:none">
+      <h2>4 · Doctor Consultation</h2>
+      <div class="row">
+        <div style="flex:0 0 160px">
+          <label>Mode</label>
+          <select id="consultMode"><option value="chat">chat</option><option value="video">video</option></select>
+        </div>
+        <div><label>Note (optional)</label><input type="text" id="consultNote" placeholder="anything to tell the doctor"></div>
+        <div style="flex:0 0 180px"><button id="btnConsult" style="background:var(--doctor)">Request Consultation</button></div>
+      </div>
+      <div id="consultOut" class="muted" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ DOCTOR ============ -->
+  <section class="panel doctor">
+    <div class="card">
+      <h2>Consultation Queue</h2>
+      <button class="ghost sm" id="btnQueue" style="color:var(--doctor)">↻ Refresh queue</button>
+      <div class="list" id="queue" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section class="panel admin">
+    <div class="card">
+      <h2>System Stats</h2>
+      <button class="ghost sm" id="btnStats" style="color:var(--admin)">↻ Load stats</button>
+      <div class="brief" id="stats" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Doctor Verification</h2>
+      <div class="row">
+        <div><label>Doctor UID</label><input type="text" id="docUid" placeholder="e.g. doc1"></div>
+        <div style="flex:0 0 120px"><button class="sm" id="btnApprove" style="background:var(--ok)">Approve</button></div>
+        <div style="flex:0 0 120px"><button class="sm" id="btnReject" style="background:var(--err)">Reject</button></div>
+        <div style="flex:0 0 120px"><button class="ghost sm" id="btnDocs" style="color:var(--admin)">↻ List</button></div>
+      </div>
+      <div class="list" id="doctors" style="margin-top:12px"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const API = window.location.origin;
+let role = "patient";
+let sessionId = null;
+
+const $ = s => document.querySelector(s);
+const uid = () => $("#uid").value || "u1";
+function headers(json){
+  const h = {"X-Role": role, "X-User-Id": uid()};
+  if(json) h["Content-Type"] = "application/json";
+  return h;
+}
+async function jget(path){ const r = await fetch(API+path,{headers:headers()}); return handle(r); }
+async function jpost(path, body){ const r = await fetch(API+path,{method:"POST",headers:headers(true),body:JSON.stringify(body)}); return handle(r); }
+async function handle(r){ const t = await r.text(); let d; try{d=JSON.parse(t)}catch{d=t} if(!r.ok) throw (d && d.detail ? d.detail : d); return d; }
+
+// ---- tabs ----
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    $(".panel."+tab.dataset.panel).classList.add("active");
+    role = tab.dataset.role;
+    const tg = $("#roleTag"); tg.textContent = role;
+    tg.className = "badge " + (role==="patient"?"b-healthy":role==="doctor"?"b-normal":"b-ood");
+  };
+});
+
+// ---- preview ----
+$("#image").onchange = e=>{
+  const f = e.target.files[0]; const img = $("#preview");
+  if(f){ img.src = URL.createObjectURL(f); img.style.display="block"; }
+};
+
+// ---- diagnose ----
+$("#btnDiagnose").onclick = async ()=>{
+  $("#diagErr").textContent = "";
+  const file = $("#image").files[0];
+  if(!file){ $("#diagErr").textContent = "Please choose an image first."; return; }
+  const btn = $("#btnDiagnose"); btn.disabled = true; btn.textContent = "Analysing...";
+  try{
+    const fd = new FormData();
+    fd.append("image", file);
+    if($("#region").value) fd.append("body_region", $("#region").value);
+    const r = await fetch(API+"/diagnose",{method:"POST",headers:{"X-Role":role,"X-User-Id":uid()},body:fd});
+    const data = await handle(r);
+    sessionId = data.session_id;
+    renderBrief(data.brief);
+    startChat(data.message, data.awaiting_answer);
+  }catch(err){ $("#diagErr").textContent = "Error: " + (typeof err==="string"?err:JSON.stringify(err)); }
+  finally{ btn.disabled=false; btn.textContent="Diagnose"; }
+};
+
+function renderBrief(b){
+  $("#briefCard").style.display="block";
+  const mb=$("#modeBadge"); mb.textContent=b.mode; mb.className="badge b-"+b.mode;
+  $("#urgentBadge").innerHTML = b.urgent ? '<span class="badge b-urgent">URGENT</span>' : '';
+  const conf=(b.confidence*100).toFixed(1)+"%";
+  const g=[["Disease",b.disease],["Confidence",conf],["Entropy",b.entropy],
+    ["2nd guess",b.second_guess?b.second_guess.disease:"—"],
+    ["Region",b.body_region||"—"],["Severity",b.severity||"—"],
+    ["Image",b.image_quality]];
+  $("#briefGrid").innerHTML = g.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+// ---- chat ----
+function addMsg(role_,text){
+  const d=document.createElement("div"); d.className="msg "+role_;
+  d.innerHTML=`<div class="bubble">${text}</div>`;
+  $("#chat").appendChild(d); $("#chat").scrollTop=$("#chat").scrollHeight;
+}
+function startChat(message, awaiting){
+  $("#chatCard").style.display="block"; $("#chat").innerHTML=""; $("#doneBox").innerHTML="";
+  $("#consultCard").style.display="none";
+  addMsg("assistant", message);
+  setChatEnabled(awaiting);
+  if(!awaiting) finishChat();
+}
+function setChatEnabled(on){ $("#answer").disabled=!on; $("#btnSend").disabled=!on; if(on) $("#answer").focus(); }
+function finishChat(){
+  $("#doneBox").innerHTML='<div class="done">✓ Session complete</div>';
+  $("#consultCard").style.display="block";
+}
+$("#btnSend").onclick = sendAnswer;
+$("#answer").addEventListener("keydown",e=>{ if(e.key==="Enter") sendAnswer(); });
+async function sendAnswer(){
+  const text=$("#answer").value.trim(); if(!text||!sessionId) return;
+  addMsg("user",text); $("#answer").value=""; setChatEnabled(false);
+  try{
+    const turn = await jpost("/chat/answer",{session_id:sessionId,answer:text});
+    addMsg("assistant", turn.message);
+    if(turn.done) finishChat(); else setChatEnabled(true);
+  }catch(err){ addMsg("assistant","⚠️ "+(typeof err==="string"?err:JSON.stringify(err))); setChatEnabled(true); }
+}
+
+// ---- consult ----
+$("#btnConsult").onclick = async ()=>{
+  try{
+    const c = await jpost("/consult/request",{session_id:sessionId,mode:$("#consultMode").value,note:$("#consultNote").value||null});
+    $("#consultOut").innerHTML = `✅ Consultation requested — case <b>${c.id}</b> (status: ${c.status}). Switch to the Doctor tab to see it in the queue.`;
+  }catch(err){ $("#consultOut").innerHTML='<span class="err">Error: '+(typeof err==="string"?err:JSON.stringify(err))+'</span>'; }
+};
+
+// ---- doctor ----
+$("#btnQueue").onclick = async ()=>{
+  try{
+    const cases = await jget("/consult/queue");
+    $("#queue").innerHTML = cases.length ? cases.map(c=>`
+      <div class="item">
+        <div><b>${c.brief?c.brief.disease:'?'}</b> <span class="muted">· patient ${c.patient_id} · ${c.mode} · ${c.status}</span><br>
+          <span class="muted">case ${c.id}</span></div>
+        <div>
+          <button class="sm" style="background:var(--doctor)" onclick="caseAction('${c.id}','accept')">Accept</button>
+          <button class="sm ghost" onclick="caseAction('${c.id}','close')">Close</button>
+        </div>
+      </div>`).join("") : '<div class="muted">Queue is empty. Request a consultation from the Patient tab first.</div>';
+  }catch(err){ $("#queue").innerHTML='<div class="err">'+(typeof err==="string"?err:JSON.stringify(err))+'</div>'; }
+};
+window.caseAction = async (id,action)=>{
+  try{ await jpost(`/consult/${id}/${action}`,{}); $("#btnQueue").click(); }
+  catch(err){ alert(typeof err==="string"?err:JSON.stringify(err)); }
+};
+
+// ---- admin ----
+$("#btnStats").onclick = async ()=>{
+  try{
+    const s = await jget("/admin/stats");
+    $("#stats").innerHTML = Object.entries(s).map(([k,v])=>`<div class="stat"><div class="k">${k.replace(/_/g,' ')}</div><div class="v">${v}</div></div>`).join("");
+  }catch(err){ $("#stats").innerHTML='<div class="err">'+(typeof err==="string"?err:JSON.stringify(err))+'</div>'; }
+};
+async function verify(approved){
+  const u=$("#docUid").value.trim(); if(!u){ alert("Enter a doctor UID"); return; }
+  try{ await jpost("/admin/doctors/verify",{uid:u,approved}); $("#btnDocs").click(); $("#btnStats").click(); }
+  catch(err){ alert(typeof err==="string"?err:JSON.stringify(err)); }
+}
+$("#btnApprove").onclick = ()=>verify(true);
+$("#btnReject").onclick = ()=>verify(false);
+$("#btnDocs").onclick = async ()=>{
+  try{
+    const docs = await jget("/admin/doctors");
+    $("#doctors").innerHTML = docs.length ? docs.map(d=>`
+      <div class="item"><div><b>${d.uid}</b> ${d.name?'· '+d.name:''}</div>
+        <span class="badge ${d.verified?'b-normal':'b-ood'}">${d.verified?'verified':'pending'}</span></div>`).join("")
+      : '<div class="muted">No doctors yet. Approve a UID above to create one.</div>';
+  }catch(err){ $("#doctors").innerHTML='<div class="err">'+(typeof err==="string"?err:JSON.stringify(err))+'</div>'; }
+};
+</script>
+</body>
+</html>

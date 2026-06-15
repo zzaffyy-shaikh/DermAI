@@ -1,0 +1,13 @@
+.env
+*.db
+reports/
+tests/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+README.md
+SECURITY.md
+DEPLOYMENT.md

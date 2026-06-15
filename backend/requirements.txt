@@ -1,0 +1,28 @@
+# --- core API ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+python-multipart>=0.0.9
+
+# --- database (SQLite by default; no server needed) ---
+sqlalchemy>=2.0
+
+# --- PDF report generation ---
+fpdf2>=2.7
+
+# --- imaging / ML ---
+pillow>=10.2
+numpy>=1.26
+# Install torch/torchvision matching your CUDA from https://pytorch.org
+# Example (CUDA 12.1):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.2
+torchvision>=0.17
+
+# --- optional integrations (safe to skip; code degrades gracefully) ---
+openai>=1.30            # only needed if DERMAI_LLM_PROVIDER=openai
+google-genai>=0.3       # only needed if DERMAI_LLM_PROVIDER=gemini
+google-auth>=2.30       # only needed for "Sign in with Google"
+firebase-admin>=6.5     # only needed if DERMAI_AUTH_MODE=firebase
+# MobileSAM: pip install git+https://github.com/ChaoningZhang/MobileSAM.git

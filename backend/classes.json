@@ -1,0 +1,19 @@
+{
+  "_comment": "Order MUST match torchvision ImageFolder (sorted folder names) used in training. Do not reorder.",
+  "classes": [
+    "Acne",
+    "Atopic Dermatitis",
+    "Eczema",
+    "Healthy",
+    "Hyper Pigmintation",
+    "Melanoma",
+    "Psoriasis",
+    "Seborrheic Keratoses"
+  ],
+  "display": {
+    "Hyper Pigmintation": "Hyper Pigmentation"
+  },
+  "urgent": [
+    "Melanoma"
+  ]
+}
