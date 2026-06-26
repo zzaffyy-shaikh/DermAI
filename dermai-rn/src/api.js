@@ -11,13 +11,27 @@ function headers(json) {
   return h;
 }
 
+// Turn FastAPI/Pydantic error payloads into a readable message instead of raw JSON.
+function formatDetail(detail) {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e) => {
+      const loc = Array.isArray(e.loc) ? e.loc.filter((p) => p !== "body") : [];
+      const field = loc.length ? String(loc[loc.length - 1]).replace(/_/g, " ") : "";
+      const msg = (e.msg || "is invalid").replace(/^Value error,?\s*/i, "");
+      return field ? `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}` : msg;
+    }).join("\n");
+  }
+  return detail ? String(detail) : "Something went wrong.";
+}
+
 async function handle(res) {
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) {
     const detail = data && data.detail !== undefined ? data.detail : data;
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    throw new Error(formatDetail(detail));
   }
   return data;
 }

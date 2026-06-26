@@ -52,6 +52,13 @@ export function errText(e) {
   if (e instanceof TypeError && /fetch|network/i.test(e.message))
     return "Can't reach the server. Please check your connection and try again.";
   if (typeof e === "string") return e;
+  // FastAPI/Pydantic validation errors come back as an array of {loc, msg}.
+  if (Array.isArray(e)) return e.map((x) => {
+    const loc = Array.isArray(x.loc) ? x.loc.filter((p) => p !== "body") : [];
+    const field = loc.length ? String(loc[loc.length - 1]).replace(/_/g, " ") : "";
+    const msg = (x.msg || "is invalid").replace(/^Value error,?\s*/i, "");
+    return field ? `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}` : msg;
+  }).join("; ");
   if (e && e.message) return e.message;
   try { return JSON.stringify(e); } catch { return String(e); }
 }

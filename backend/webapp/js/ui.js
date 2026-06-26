@@ -29,7 +29,10 @@ export function layout(active, content) {
     .join("");
   return `
     <header class="topbar">
-      <div class="brand"><span>Derm</span>AI</div>
+      <div class="brand" style="display:flex;align-items:center;gap:9px">
+        <img src="/app/logo.svg" alt="" style="width:28px;height:28px;border-radius:8px">
+        <span style="background:linear-gradient(90deg,#9db8ff,#d6c2ff);-webkit-background-clip:text;background-clip:text;color:transparent"><span>Derm</span>AI</span>
+      </div>
       <nav class="nav">${links}</nav>
       <div class="user">
         <div class="notif">

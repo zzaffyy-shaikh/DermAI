@@ -14,6 +14,7 @@ export function mount(root) {
     root.innerHTML = `
       <div class="login-wrap">
         <form class="login-card" id="form">
+          <img src="/app/logo.svg" alt="DermAI logo" style="width:76px;height:76px;display:block;margin:0 auto 8px;border-radius:18px">
           <div class="brand"><span>Derm</span>AI</div>
           <div class="sub">AI-powered skin disease screening</div>
 

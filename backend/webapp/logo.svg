@@ -1,0 +1,77 @@
+<svg width="240" height="240" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg_blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="skin_blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbdcc0"/>
+      <stop offset="1" stop-color="#e8b48c"/>
+    </linearGradient>
+    <linearGradient id="rim_blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d7e6ff"/>
+    </linearGradient>
+    <linearGradient id="handle_blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <clipPath id="badgeclip_blue"><rect x="6" y="6" width="108" height="108" rx="30"/></clipPath>
+    <clipPath id="lensclip_blue"><circle cx="52" cy="50" r="25"/></clipPath>
+  </defs>
+
+  <!-- Badge -->
+  <rect x="6" y="6" width="108" height="108" rx="30" fill="#1e3a8a"/>
+  <rect x="6" y="6" width="108" height="108" rx="30" fill="url(#bg_blue)"/>
+  <ellipse cx="46" cy="34" rx="52" ry="30" fill="#ffffff" fill-opacity="0.08"/>
+
+  <g clip-path="url(#badgeclip_blue)">
+    <!-- Skin surface being examined -->
+    <path d="M6,74 Q34,66 64,72 T118,74 L118,116 L6,116 Z" fill="url(#skin_blue)" fill-opacity="0.92"/>
+    <g fill="#c98a5e" fill-opacity="0.45">
+      <circle cx="86" cy="92" r="1.7"/><circle cx="98" cy="103" r="1.5"/><circle cx="74" cy="104" r="1.6"/>
+      <circle cx="30" cy="98" r="1.6"/><circle cx="44" cy="106" r="1.4"/><circle cx="102" cy="90" r="1.4"/>
+    </g>
+  </g>
+
+  <!-- Lens shadow (depth) -->
+  <circle cx="53" cy="51.5" r="28.5" fill="#0b2447" fill-opacity="0.20"/>
+
+  <!-- Lens content: magnified skin + mole + AI analysis -->
+  <g clip-path="url(#lensclip_blue)">
+    <rect x="27" y="25" width="50" height="50" fill="url(#skin_blue)"/>
+    <!-- magnified pores -->
+    <g fill="#cf9468" fill-opacity="0.5">
+      <circle cx="44" cy="40" r="1.5"/><circle cx="63" cy="44" r="1.6"/><circle cx="46" cy="60" r="1.5"/>
+      <circle cx="64" cy="62" r="1.4"/><circle cx="40" cy="52" r="1.3"/>
+    </g>
+    <!-- the mole under examination -->
+    <ellipse cx="56" cy="53" rx="6" ry="5.2" fill="#7a4a24"/>
+    <ellipse cx="54.5" cy="51.5" rx="2.2" ry="1.8" fill="#9c6b3f" fill-opacity="0.7"/>
+    <!-- AI analysis overlay: target + nodes -->
+    <circle cx="56" cy="53" r="10" fill="none" stroke="#2dd4bf" stroke-width="1.4" stroke-opacity="0.9" stroke-dasharray="3 3"/>
+    <g stroke="#2dd4bf" stroke-width="1.2" stroke-opacity="0.95">
+      <line x1="46" y1="53" x2="50" y2="53"/><line x1="62" y1="53" x2="66" y2="53"/>
+      <line x1="56" y1="43" x2="56" y2="47"/><line x1="56" y1="59" x2="56" y2="63"/>
+    </g>
+    <g stroke="#2dd4bf" stroke-width="1" stroke-opacity="0.6" fill="none">
+      <line x1="56" y1="53" x2="40" y2="38"/><line x1="56" y1="53" x2="70" y2="40"/><line x1="56" y1="53" x2="66" y2="66"/>
+    </g>
+    <g fill="#5eead4">
+      <circle cx="40" cy="38" r="2.2"/><circle cx="70" cy="40" r="2.2"/><circle cx="66" cy="66" r="2.2"/>
+    </g>
+  </g>
+
+  <!-- Glass highlight -->
+  <path d="M37,42 A25,25 0 0 1 58,28" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Lens rim -->
+  <circle cx="52" cy="50" r="27.5" fill="none" stroke="url(#rim_blue)" stroke-width="5.5"/>
+
+  <!-- Handle -->
+  <line x1="71" y1="69" x2="92" y2="90" stroke="#0b2447" stroke-opacity="0.20" stroke-width="9.5" stroke-linecap="round"/>
+  <line x1="71" y1="69" x2="92" y2="90" stroke="url(#handle_blue)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="70.5" cy="68.5" r="4.5" fill="url(#rim_blue)"/>
+
+  <rect x="6" y="6" width="108" height="108" rx="30" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.5"/>
+</svg>
