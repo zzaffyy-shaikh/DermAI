@@ -103,6 +103,25 @@ async def my_appointments(
     return sorted(cases, key=lambda c: c.created_at or "", reverse=True)
 
 
+@router.post("/{case_id}/cancel", response_model=ConsultCase)
+async def cancel(
+    case_id: str,
+    user: CurrentUser = Depends(require_role(Role.PATIENT)),
+) -> ConsultCase:
+    case = consult_store.cancel(case_id, user.uid)
+    if case is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,
+                            "Appointment not found, not yours, or can't be cancelled.")
+    if case.slot_id:
+        slot_store.release(case.slot_id)   # free the time so others (or they) can rebook
+    if case.doctor_id:
+        notification_store.push(
+            case.doctor_id, kind="appointment", case_id=case.id,
+            text=f"{case.patient_name} cancelled their {_fmt_time(case.appointment_time)} appointment.",
+        )
+    return case
+
+
 # ---------------- doctor: availability ----------------
 
 @router.get("/availability", response_model=list[Slot])

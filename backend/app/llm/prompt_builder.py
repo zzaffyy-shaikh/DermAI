@@ -13,7 +13,7 @@ _BASE_RULES = (
     "NEVER ask about appearance — colour, size, shape, edges, borders, texture, or location. "
     "Ask only clinical questions: history, duration, triggers, symptoms, family history, "
     "medications, lifestyle. Ask exactly ONE question per turn. Keep it short and plain. "
-    "Take the patient's age and sex into account and NEVER ask sex-inappropriate questions "
+    "Take the patient's age and sex into account."
     "(e.g. do not ask a male about menstrual cycles or pregnancy). Do not repeat a question. "
     "Use the patient's medical history below to guide which questions are worth asking and in "
     "your final assessment (e.g. don't re-ask things already known)."

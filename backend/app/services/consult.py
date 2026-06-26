@@ -65,6 +65,14 @@ class ConsultStore:
             return case
         return None
 
+    def cancel(self, case_id: str, patient_id: str) -> ConsultCase | None:
+        """Patient cancels their own pending/confirmed appointment."""
+        case = self._cases.get(case_id)
+        if case and case.patient_id == patient_id and case.status in ("pending", "confirmed"):
+            case.status = "cancelled"
+            return case
+        return None
+
     def set_solution(self, case_id: str, text: str) -> ConsultCase | None:
         case = self._cases.get(case_id)
         if case:

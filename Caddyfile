@@ -1,0 +1,7 @@
+# Caddy automatically obtains and renews a free Let's Encrypt TLS certificate for
+# your domain, then reverse-proxies everything to the backend container.
+# The domain MUST already point (DNS A record) to this server's public IP.
+{$DERMAI_DOMAIN} {
+	encode gzip
+	reverse_proxy backend:8000
+}

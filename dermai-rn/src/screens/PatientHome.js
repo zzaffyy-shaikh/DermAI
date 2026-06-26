@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, Image,
-  ActivityIndicator, StyleSheet, RefreshControl, KeyboardAvoidingView, Platform, Modal, Keyboard, Linking,
+  ActivityIndicator, StyleSheet, RefreshControl, KeyboardAvoidingView, Platform, Modal, Keyboard, Linking, Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiGet, apiPost, apiUpload, getToken } from "../api";
 import { BASE_URL } from "../config";
@@ -69,7 +70,17 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
   const [awaiting, setAwaiting] = useState(false);
   const [done, setDone] = useState(false);
   const [answer, setAnswer] = useState("");
+  const [options, setOptions] = useState(null);
+  const [showOnboard, setShowOnboard] = useState(false);
   const scrollRef = useRef(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("dermai.onboarded").then((v) => { if (!v) setShowOnboard(true); }).catch(() => {});
+  }, []);
+  const dismissOnboard = () => {
+    setShowOnboard(false);
+    AsyncStorage.setItem("dermai.onboarded", "1").catch(() => {});
+  };
 
   const pick = async (fromCamera) => {
     const perm = fromCamera
@@ -96,6 +107,7 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
       setMessages([{ role: "assistant", text: data.message }]);
       setAwaiting(data.awaiting_answer === true);
       setDone(data.awaiting_answer !== true);
+      setOptions(data.options || null);
     } catch (e) {
       const msg = e.message || String(e);
       if (/medical history/i.test(msg) && onNeedHistory) {
@@ -109,16 +121,24 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
     }
   };
 
-  const send = async () => {
-    const text = answer.trim();
+  const send = async (forced) => {
+    const text = forced != null ? forced : answer.trim();
     if (!text || !sessionId) return;
     setMessages((m) => [...m, { role: "user", text }]);
-    setAnswer(""); setAwaiting(false);
+    if (forced == null) setAnswer("");
+    setAwaiting(false);
     try {
       const turn = await apiPost("/chat/answer", { session_id: sessionId, answer: text });
       setMessages((m) => [...m, { role: "assistant", text: turn.message }]);
-      setDone(turn.done === true);
-      setAwaiting(turn.done !== true);
+      if (turn.done === true) {
+        setDone(true); setAwaiting(false); setOptions(null);
+        try {
+          const r = await apiGet(`/chat/${sessionId}/result`);   // refined diagnosis
+          if (r && r.disease) setBrief((b) => ({ ...b, disease: r.disease, confidence: r.confidence, urgent: r.urgent, refined: true }));
+        } catch { /* not refined */ }
+      } else {
+        setDone(false); setAwaiting(true); setOptions(turn.options || null);
+      }
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     } catch (e) {
       setMessages((m) => [...m, { role: "assistant", text: "⚠️ " + (e.message || e) }]);
@@ -129,6 +149,21 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
   return (
     <View style={{ flex: 1 }}>
     <KeyboardAwareScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" bottomOffset={24}>
+      {showOnboard && (
+        <View style={styles.card}>
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <Text style={styles.cardTitle}>👋 How DermAI works</Text>
+            <TouchableOpacity onPress={dismissOnboard}><Text style={{ color: colors.patient, fontWeight: "700" }}>Got it</Text></TouchableOpacity>
+          </View>
+          <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 21 }}>
+            1. Fill your medical history once.{"\n"}
+            2. Upload a clear, well-lit photo of the affected skin.{"\n"}
+            3. Answer a few quick follow-up questions.{"\n"}
+            4. Get a preliminary result and a PDF report.{"\n"}
+            5. Book a video consultation with a dermatologist.
+          </Text>
+        </View>
+      )}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Skin screening</Text>
         {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
@@ -140,6 +175,8 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
             <Text style={styles.outlineText}>🖼️ Gallery</Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.photoTips}>📸 Best results: good lighting, hold steady & in focus, fill the frame with the affected area, and avoid shadows.</Text>
 
         <Text style={styles.label}>Affected body region (optional)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
@@ -172,13 +209,21 @@ function DiagnoseTab({ name, onNeedHistory, onBooked }) {
           ))}
           {done ? (
             <Text style={styles.doneText}>✓ Screening complete</Text>
+          ) : options && options.length ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
+              {options.map((o) => (
+                <TouchableOpacity key={o} style={styles.optBtn} onPress={() => send(o)} disabled={!awaiting}>
+                  <Text style={styles.optText}>{o}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : (
             <View style={styles.row}>
               <TextInput style={[styles.input, { flex: 1 }]} value={answer} onChangeText={setAnswer}
-                placeholder="Type your answer..." editable={awaiting} onSubmitEditing={send}
+                placeholder="Type your answer..." editable={awaiting} onSubmitEditing={() => send()}
                 onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250)} />
               <TouchableOpacity style={[styles.primaryBtn, { paddingHorizontal: 18, marginLeft: 8 }]}
-                onPress={send} disabled={!awaiting}>
+                onPress={() => send()} disabled={!awaiting}>
                 <Text style={styles.primaryText}>Send</Text>
               </TouchableOpacity>
             </View>
@@ -255,7 +300,7 @@ function BookConsult({ sessionId, onBooked }) {
 }
 
 /* ---------------- Appointments ---------------- */
-const STATUS_LABEL = { pending: "Awaiting confirmation", confirmed: "Confirmed", declined: "Declined", closed: "Completed" };
+const STATUS_LABEL = { pending: "Awaiting confirmation", confirmed: "Confirmed", declined: "Declined", cancelled: "Cancelled", closed: "Completed" };
 
 function AppointmentsTab({ name }) {
   const [items, setItems] = useState([]);
@@ -271,6 +316,16 @@ function AppointmentsTab({ name }) {
   };
   useEffect(() => { load(); }, []);
 
+  const cancel = (id) => {
+    Alert.alert("Cancel appointment", "The time slot will be released.", [
+      { text: "Keep" },
+      { text: "Cancel it", style: "destructive", onPress: async () => {
+        try { await apiPost(`/consult/${id}/cancel`, {}); load(); }
+        catch (e) { Alert.alert("Error", e.message || String(e)); }
+      } },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}
@@ -282,7 +337,7 @@ function AppointmentsTab({ name }) {
             <View style={[styles.row, { alignItems: "center" }]}>
               <Text style={{ fontWeight: "700", fontSize: 15, flex: 1 }}>{c.doctor_name || "Dermatologist"}</Text>
               <Badge text={STATUS_LABEL[c.status] || c.status}
-                color={c.status === "confirmed" ? colors.ok : c.status === "declined" ? colors.err : colors.warn} />
+                color={c.status === "confirmed" ? colors.ok : (c.status === "declined" || c.status === "cancelled") ? colors.err : colors.warn} />
             </View>
             <Text style={{ color: colors.muted, marginTop: 4 }}>🕒 {fmtDateTime(c.appointment_time)}{c.brief ? ` · ${c.brief.disease}` : ""}</Text>
             {c.solution ? <Text style={{ marginTop: 6 }}>💬 {c.solution}</Text> : null}
@@ -296,6 +351,11 @@ function AppointmentsTab({ name }) {
                   <Text style={styles.smBtnText}>🎥 Join</Text>
                 </TouchableOpacity>
               )}
+              {(c.status === "pending" || c.status === "confirmed") && (
+                <TouchableOpacity style={[styles.smBtn, { backgroundColor: colors.err }]} onPress={() => cancel(c.id)}>
+                  <Text style={styles.smBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ))}
@@ -307,23 +367,53 @@ function AppointmentsTab({ name }) {
   );
 }
 
+function confidenceBand(c) { return c >= 0.75 ? "High" : c >= 0.5 ? "Moderate" : "Low"; }
+
+function plainResult(b) {
+  if (b.mode === "healthy")
+    return "Good news — no clear signs of a skin condition were found in this photo. "
+      + "Please still answer the follow-up questions so nothing a picture can't show is missed.";
+  if (b.mode === "ood")
+    return "This photo wasn't clear enough to confidently identify a specific condition. "
+      + "It's best to see a dermatologist for an in-person check.";
+  return `This most closely resembles ${b.disease}.`
+    + (b.urgent ? " A few features here deserve a prompt in-person check by a dermatologist." : "");
+}
+
 function BriefCard({ brief }) {
-  const conf = (brief.confidence * 100).toFixed(1);
+  const band = confidenceBand(brief.confidence);
+  const healthy = brief.mode === "healthy";
   return (
     <View style={styles.card}>
       <View style={[styles.row, { alignItems: "center" }]}>
         <Text style={styles.cardTitle}>Result</Text>
-        <Badge text={brief.mode} color={modeColor(brief.mode)} />
-        {brief.urgent && <Badge text="URGENT" color={colors.err} />}
+        <Badge text={healthy ? "no condition" : brief.urgent ? "needs a doctor" : brief.mode}
+          color={brief.urgent ? colors.err : modeColor(brief.mode)} />
       </View>
-      <KV k="Disease" v={String(brief.disease)} />
-      <KV k="Confidence" v={`${conf}%`} />
-      <KV k="Region" v={brief.body_region || "—"} />
-      <KV k="Severity" v={brief.severity || "—"} />
-      <KV k="Image quality" v={brief.image_quality} />
+      {brief.refined ? <Text style={{ color: colors.doctor, fontWeight: "700", fontSize: 12.5, marginTop: 6 }}>✓ Updated using your answers</Text> : null}
+      <Text style={styles.headline}>{plainResult(brief)}</Text>
+      {healthy ? (
+        <>
+          <KV k="Result" v="No condition detected" />
+          <KV k="Confidence" v={band} />
+        </>
+      ) : (
+        <>
+          <KV k="Most likely" v={String(brief.disease)} />
+          <KV k="Likelihood" v={`${band} (${(brief.confidence * 100).toFixed(0)}%)`} />
+          <KV k="Other possibility" v={brief.second_guess ? String(brief.second_guess.disease) : "—"} />
+          <KV k="Affected area" v={brief.body_region || "—"} />
+          <KV k="Severity" v={brief.severity || "—"} />
+        </>
+      )}
+      <KV k="Photo quality" v={brief.image_quality} />
+      {brief.image_quality === "blurry" ? (
+        <Text style={styles.warnBox}>⚠️ This photo looks blurry, so the result may be less reliable. Retake it in good light, hold steady, and fill the frame with the affected area.</Text>
+      ) : null}
       {brief.insights ? (
         <Text style={{ marginTop: 8, color: colors.muted }}>🔍 {brief.insights.summary}</Text>
       ) : null}
+      <Text style={styles.disclaimer}>⚕️ Preliminary AI screening, not a medical diagnosis. Always confirm with a dermatologist.</Text>
     </View>
   );
 }
@@ -333,6 +423,7 @@ function HistoryTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bookSid, setBookSid] = useState(null);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -343,23 +434,47 @@ function HistoryTab() {
   useEffect(() => { load(); }, []);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      {error && <Text style={styles.error}>{error}</Text>}
-      {!loading && items.length === 0 && <Text style={{ color: colors.muted }}>No screenings yet.</Text>}
-      {items.map((s) => (
-        <View key={s.session_id} style={styles.card}>
-          <View style={[styles.row, { alignItems: "center" }]}>
-            <Text style={{ fontWeight: "700", fontSize: 15 }}>{s.disease}</Text>
-            <Badge text={s.mode} color={modeColor(s.mode)} />
-            {s.urgent && <Badge text="URGENT" color={colors.err} />}
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
+        {error && <Text style={styles.error}>{error}</Text>}
+        {!loading && items.length === 0 && <Text style={{ color: colors.muted }}>No screenings yet.</Text>}
+        {items.map((s) => (
+          <View key={s.session_id} style={styles.card}>
+            <View style={[styles.row, { alignItems: "center" }]}>
+              <Text style={{ fontWeight: "700", fontSize: 15 }}>{s.disease}</Text>
+              <Badge text={s.mode} color={modeColor(s.mode)} />
+              {s.urgent && <Badge text="URGENT" color={colors.err} />}
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>
+              confidence {(s.confidence * 100).toFixed(1)}% · {s.done ? "completed" : "in progress"}
+            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
+              <TouchableOpacity style={[styles.smBtn, { backgroundColor: colors.admin }]}
+                onPress={() => Linking.openURL(`${BASE_URL}/report/${s.session_id}?token=${getToken()}`)}>
+                <Text style={styles.smBtnText}>📄 Report</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.smBtn, { backgroundColor: colors.doctor }]}
+                onPress={() => setBookSid(s.session_id)}>
+                <Text style={styles.smBtnText}>🎥 Book</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={{ color: colors.muted, marginTop: 4 }}>
-            confidence {(s.confidence * 100).toFixed(1)}% · {s.done ? "completed" : "in progress"}
-          </Text>
+        ))}
+      </ScrollView>
+
+      <Modal visible={!!bookSid} animationType="slide" onRequestClose={() => setBookSid(null)}>
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
+          <View style={[styles.header, { backgroundColor: colors.patient }]}>
+            <Text style={styles.headerTitle}>Book a dermatologist</Text>
+            <TouchableOpacity onPress={() => setBookSid(null)}><Text style={styles.logout}>Close</Text></TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {bookSid && <BookConsult sessionId={bookSid} onBooked={() => setBookSid(null)} />}
+          </ScrollView>
         </View>
-      ))}
-    </ScrollView>
+      </Modal>
+    </View>
   );
 }
 
@@ -408,6 +523,12 @@ const styles = StyleSheet.create({
   bubbleUser: { backgroundColor: colors.patient },
   bubbleBot: { backgroundColor: "#F1F5F9" },
   doneText: { color: colors.ok, fontWeight: "700", textAlign: "center", marginTop: 10 },
+  photoTips: { marginTop: 10, fontSize: 12, color: colors.muted, backgroundColor: "#eff6ff", borderWidth: 1, borderColor: "#bfdbfe", borderRadius: 10, padding: 10, lineHeight: 17 },
+  warnBox: { marginTop: 10, fontSize: 12.5, color: "#92400e", backgroundColor: "#fffbeb", borderWidth: 1, borderColor: "#fde68a", borderRadius: 10, padding: 10, lineHeight: 17 },
+  optBtn: { backgroundColor: colors.doctor, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 18, marginRight: 8, marginBottom: 8 },
+  optText: { color: "#fff", fontWeight: "700" },
+  headline: { backgroundColor: "#eef2ff", borderRadius: 10, padding: 11, color: colors.ink, lineHeight: 20, marginTop: 6, marginBottom: 4 },
+  disclaimer: { marginTop: 10, fontSize: 12, color: colors.muted, backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa", borderRadius: 10, padding: 9, lineHeight: 17 },
   slotBtn: { backgroundColor: colors.doctor, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginRight: 8, marginBottom: 8 },
   smBtn: { borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, marginLeft: 8 },
   smBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },

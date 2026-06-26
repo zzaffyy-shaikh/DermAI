@@ -48,5 +48,10 @@ export async function apiUpload(path, formData) {
 }
 
 export function errText(e) {
-  return typeof e === "string" ? e : JSON.stringify(e);
+  // Network failure (server down / offline) throws a TypeError from fetch().
+  if (e instanceof TypeError && /fetch|network/i.test(e.message))
+    return "Can't reach the server. Please check your connection and try again.";
+  if (typeof e === "string") return e;
+  if (e && e.message) return e.message;
+  try { return JSON.stringify(e); } catch { return String(e); }
 }

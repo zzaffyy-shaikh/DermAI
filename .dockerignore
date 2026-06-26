@@ -1,0 +1,31 @@
+# Keep the Docker build context small and free of secrets/large data.
+.git/
+Docs/
+dermai-rn/
+mobile/
+mobile-rn/
+
+# datasets & checkpoints (huge, not needed in the image)
+final dataset/
+clear skin dataset/
+zip orginal data/
+checkpoints/
+testing photos/
+*.zip
+
+# the OLD leaked model — only the honest one (convnext_skin_best.pth) is copied in
+codes/convnext_skin_fyp_new.pth
+codes/__pycache__/
+
+# python / runtime junk
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+
+# secrets & local runtime data (never bake into the image)
+**/.env
+backend/dermai.db
+backend/reports/
+backend/uploads/
+backend/licenses/

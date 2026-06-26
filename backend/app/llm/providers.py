@@ -160,12 +160,19 @@ class GeminiProvider(BaseProvider):
 
     async def _generate(self, system: str, user_text: str) -> str:
         from google.genai import types
+        # gemini-2.5-flash "thinks" by default; those hidden thinking tokens consume the
+        # output budget and can truncate the visible answer mid-sentence (e.g. a final
+        # summary that stops before naming the condition). Disable thinking for these short
+        # clinical messages and give a comfortable token ceiling so the full text returns.
+        config = types.GenerateContentConfig(
+            system_instruction=system, temperature=0.4, max_output_tokens=800,
+        )
+        try:
+            config.thinking_config = types.ThinkingConfig(thinking_budget=0)
+        except Exception:  # noqa: BLE001 — older SDKs / models without thinking support
+            pass
         resp = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=user_text,
-            config=types.GenerateContentConfig(
-                system_instruction=system, temperature=0.4, max_output_tokens=400,
-            ),
+            model=self.model, contents=user_text, config=config,
         )
         return (resp.text or "").strip()
 

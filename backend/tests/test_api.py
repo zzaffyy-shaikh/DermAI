@@ -144,6 +144,27 @@ def test_appointment_flow_and_doctor_context(client):
                       headers=auth(dtoken)).status_code == 200
 
 
+def test_patient_can_cancel_appointment(client):
+    token, d = diagnosed_patient(client, "jack")
+    sid = d["session_id"]
+    dtoken, duid = verified_dermatologist(client, "drcancel")
+    slot_id = client.post("/consult/availability", headers=auth(dtoken),
+                         json={"slots": ["2026-07-01T10:00:00"]}).json()[0]["id"]
+    case = client.post("/consult/request", headers=auth(token),
+                       json={"session_id": sid, "doctor_id": duid, "slot_id": slot_id}).json()
+
+    # patient cancels -> status cancelled, slot freed again
+    r = client.post(f"/consult/{case['id']}/cancel", headers=auth(token))
+    assert r.status_code == 200 and r.json()["status"] == "cancelled"
+    avail = client.get("/consult/availability", headers=auth(dtoken)).json()
+    assert any(s["id"] == slot_id and s["status"] == "open" for s in avail)
+
+    # cancelling again (already cancelled) is rejected; another patient can't cancel it
+    assert client.post(f"/consult/{case['id']}/cancel", headers=auth(token)).status_code == 404
+    t2, _ = diagnosed_patient(client, "jill")
+    assert client.post(f"/consult/{case['id']}/cancel", headers=auth(t2)).status_code == 404
+
+
 def test_non_dermatologist_cannot_consult(client):
     """DermAI: a verified non-dermatologist is barred from online consults."""
     token, _ = diagnosed_patient(client, "harry")

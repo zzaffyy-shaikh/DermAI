@@ -95,4 +95,5 @@ async def diagnose(
 
     return DiagnoseResponse(
         session_id=session.id, brief=brief, message=message, awaiting_answer=awaiting,
+        options=session.options,
     )

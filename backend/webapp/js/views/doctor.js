@@ -1,6 +1,6 @@
 // Doctor console: availability, incoming requests (with full context), and
 // appointments with solution notes. Online consults are dermatologist-only.
-import { layout, bindLayout, esc, modeBadge, medicalFormHTML, collectMedical, fmtDateTime } from "../ui.js";
+import { layout, bindLayout, esc, modeBadge, medicalFormHTML, collectMedical, fmtDateTime, toast } from "../ui.js";
 import { apiGet, apiPost, apiPut, apiDelete, errText } from "../api.js";
 import { getSession } from "../store.js";
 
@@ -51,6 +51,8 @@ export function mount(root) {
   root.querySelector("#btnReq").onclick = () => loadRequests(root);
   root.querySelector("#btnMine").onclick = () => loadMine(root);
   root.querySelector("#btnAddSlot").onclick = () => addSlot(root);
+  const si = root.querySelector("#slotInput");          // block past date/times
+  if (si) { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); si.min = d.toISOString().slice(0, 16); }
   root.querySelector("#mhClose").onclick = () => { root.querySelector("#mhModal").style.display = "none"; };
 
   loadAvailability(root); loadRequests(root); loadMine(root);
@@ -85,12 +87,12 @@ async function addSlot(root) {
     await apiPost("/consult/availability", { slots: [inp.value + ":00"] });
     inp.value = "";
     loadAvailability(root);
-  } catch (e) { alert(errText(e)); }
+  } catch (e) { toast(errText(e), "err"); }
 }
 
 async function removeSlot(root, id) {
   try { await apiDelete(`/consult/availability/${id}`); loadAvailability(root); }
-  catch (e) { alert(errText(e)); }
+  catch (e) { toast(errText(e), "err"); }
 }
 
 /* ---------------- case rendering ---------------- */
@@ -172,15 +174,22 @@ function bindHistory(root, el) {
   el.querySelectorAll("[data-history]").forEach(b => b.onclick = () => openHistory(root, b.dataset.history));
 }
 
+const ACT_LABELS = { confirm: "Appointment confirmed", decline: "Request declined", close: "Case closed" };
 async function act(root, id, action) {
-  try { await apiPost(`/consult/${id}/${action}`, {}); loadRequests(root); loadMine(root); }
-  catch (e) { alert(errText(e)); }
+  try {
+    await apiPost(`/consult/${id}/${action}`, {});
+    toast(ACT_LABELS[action] || "Done", "ok");
+    loadRequests(root); loadMine(root);
+  } catch (e) { toast(errText(e), "err"); }
 }
 
 async function saveSolution(root, id) {
   const ta = root.querySelector("#sol_" + id);
-  try { await apiPost(`/consult/${id}/solution`, { solution: ta.value }); loadMine(root); }
-  catch (e) { alert(errText(e)); }
+  try {
+    await apiPost(`/consult/${id}/solution`, { solution: ta.value });
+    toast("Solution saved", "ok");
+    loadMine(root);
+  } catch (e) { toast(errText(e), "err"); }
 }
 
 async function openHistory(root, uid) {

@@ -53,6 +53,7 @@ class DiagnoseResponse(BaseModel):
     brief: ClinicalBrief
     message: str
     awaiting_answer: bool
+    options: list[str] | None = None        # structured answer choices (Yes/No/Not sure)
 
 
 class AnswerRequest(BaseModel):
@@ -65,6 +66,7 @@ class ChatTurn(BaseModel):
     message: str
     awaiting_answer: bool
     done: bool
+    options: list[str] | None = None        # structured answer choices (Yes/No/Not sure)
 
 
 class FinalResult(BaseModel):
@@ -92,7 +94,7 @@ class ConsultCase(BaseModel):
     patient_name: str | None = None
     session_id: str
     mode: str
-    status: str                            # pending | confirmed | declined | closed
+    status: str                            # pending | confirmed | declined | cancelled | closed
     brief: ClinicalBrief | None = None
     note: str | None = None
     room: str | None = None                # shared video-call room name

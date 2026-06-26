@@ -19,6 +19,11 @@ class Session:
     result: FinalResult | None = None
     report_path: str | None = None
     image_path: str | None = None
+    # rule-based differential refinement (NORMAL mode)
+    posterior: dict | None = None
+    asked_features: set = field(default_factory=set)
+    pending_feature: str | None = None
+    options: list | None = None        # structured answer options for the current question
 
 
 class SessionStore:

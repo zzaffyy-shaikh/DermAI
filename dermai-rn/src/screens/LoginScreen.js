@@ -3,15 +3,20 @@ import {
   View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet,
 } from "react-native";
 import { KeyboardAwareScrollView } from "../kb";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 
 import { apiPost } from "../api";
 import { sessionFromAuth } from "../session";
 import { colors } from "../theme";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from "../config";
 
-WebBrowser.maybeCompleteAuthSession();
+// Google sign-in needs native modules (ExpoWebBrowser) absent from Expo Go, so load
+// it only where available (a dev/production build). In Expo Go the button is hidden
+// and username/password login still works.
+let GoogleButton = null;
+try {
+  require("expo-web-browser");                       // throws in Expo Go
+  GoogleButton = require("./GoogleSignInButton").default;
+} catch (e) { /* Expo Go — Google sign-in unavailable */ }
 
 export default function LoginScreen({ onLogin }) {
   const [signup, setSignup] = useState(false);
@@ -30,30 +35,6 @@ export default function LoginScreen({ onLogin }) {
   const [graduation, setGraduation] = useState("");
   const [houseJob, setHouseJob] = useState("");
   const [pmdc, setPmdc] = useState("");
-
-  const googleEnabled = !!(GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
-    webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
-  });
-  useEffect(() => {
-    if (response?.type === "success") {
-      const idToken = response.params?.id_token || response.authentication?.idToken;
-      if (idToken) loginWithGoogle(idToken);
-    }
-  }, [response]);
-
-  const loginWithGoogle = async (credential) => {
-    setBusy(true); setError(null);
-    try {
-      const data = await apiPost("/auth/google", { credential });
-      await onLogin(sessionFromAuth(data));
-    } catch (e) {
-      setError(e.message || String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const submit = async () => {
     setBusy(true); setError(null);
@@ -165,16 +146,9 @@ export default function LoginScreen({ onLogin }) {
                 : <Text style={styles.buttonText}>{signup ? "Create account" : "Sign in"}</Text>}
         </TouchableOpacity>
 
-        {googleEnabled && (
-          <>
-            <View style={styles.dividerRow}>
-              <View style={styles.divLine} /><Text style={styles.divText}>or</Text><View style={styles.divLine} />
-            </View>
-            <TouchableOpacity style={styles.gbtn} disabled={!request || busy} onPress={() => promptAsync()}>
-              <Text style={styles.gbtnText}>Continue with Google</Text>
-            </TouchableOpacity>
-          </>
-        )}
+        {GoogleButton && (GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID) ? (
+          <GoogleButton onLogin={onLogin} onError={setError} disabled={busy} />
+        ) : null}
       </View>
     </KeyboardAwareScrollView>
   );

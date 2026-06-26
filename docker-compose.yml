@@ -1,0 +1,56 @@
+# DermAI production stack: FastAPI backend (serves the web app) + Caddy (auto-HTTPS).
+# Run from the repo root on the server:  docker compose up -d --build
+# Requires a .env file next to this (copy from deploy.env.example).
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DERMAI_MODEL_PATH: /app/codes/convnext_skin_best.pth
+      DERMAI_DEVICE: cpu
+      DERMAI_LLM_PROVIDER: gemini
+      DERMAI_GEMINI_API_KEY: ${DERMAI_GEMINI_API_KEY}
+      DERMAI_GEMINI_MODEL: gemini-2.5-flash
+      # production auth: only bearer tokens are trusted (no X-Role/X-User-Id headers)
+      DERMAI_AUTH_MODE: prod
+      DERMAI_SEED_ADMIN_USERNAME: ${DERMAI_SEED_ADMIN_USERNAME:-admin}
+      DERMAI_SEED_ADMIN_PASSWORD: ${DERMAI_SEED_ADMIN_PASSWORD}
+      # lock the browser CORS to your domain (the native app isn't affected by CORS)
+      DERMAI_CORS_ORIGINS: '["https://${DERMAI_DOMAIN}"]'
+      # persist the DB on a named volume so accounts survive restarts
+      DERMAI_DATABASE_URL: sqlite:////data/dermai.db
+      DERMAI_GOOGLE_CLIENT_ID: ${DERMAI_GOOGLE_CLIENT_ID:-}
+      DERMAI_GOOGLE_ANDROID_CLIENT_ID: ${DERMAI_GOOGLE_ANDROID_CLIENT_ID:-}
+    volumes:
+      - dermai-data:/data
+      - dermai-uploads:/app/backend/uploads
+      - dermai-reports:/app/backend/reports
+      - dermai-licenses:/app/backend/licenses
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DERMAI_DOMAIN: ${DERMAI_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  dermai-data:
+  dermai-uploads:
+  dermai-reports:
+  dermai-licenses:
+  caddy-data:
+  caddy-config:

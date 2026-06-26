@@ -30,7 +30,8 @@ export default function NotifBell() {
 
   return (
     <>
-      <TouchableOpacity onPress={openPanel} style={{ marginRight: 16 }}>
+      <TouchableOpacity onPress={openPanel} style={{ marginRight: 16 }}
+        accessibilityLabel={`Notifications${unread > 0 ? `, ${unread} unread` : ""}`} accessibilityRole="button">
         <Text style={{ fontSize: 18 }}>🔔</Text>
         {unread > 0 && (
           <View style={styles.badge}><Text style={styles.badgeText}>{unread > 9 ? "9+" : unread}</Text></View>

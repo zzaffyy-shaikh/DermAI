@@ -1,6 +1,6 @@
 // Management dashboard: system stats + verification queue for doctors & management,
 // plus a searchable patient registry.
-import { layout, bindLayout, esc, fmtDateTime } from "../ui.js";
+import { layout, bindLayout, esc, fmtDateTime, toast } from "../ui.js";
 import { apiGet, apiPost, apiDelete, errText } from "../api.js";
 import { getSession } from "../store.js";
 
@@ -186,7 +186,7 @@ async function verify(root, uid, approved) {
   try {
     await apiPost("/admin/verify", { uid, approved });
     loadPending(root); loadDoctors(root); loadStats(root);
-  } catch (e) { alert(errText(e)); }
+  } catch (e) { toast(errText(e), "err"); }
 }
 
 async function reject(root, uid) {
@@ -194,15 +194,15 @@ async function reject(root, uid) {
   try {
     await apiDelete(`/admin/users/${uid}`);
     loadPending(root); loadDoctors(root); loadStats(root);
-  } catch (e) { alert(errText(e)); }
+  } catch (e) { toast(errText(e), "err"); }
 }
 
 async function viewLicense(uid) {
   try {
     const s = getSession();
     const r = await fetch(`${BASE}/admin/doctors/${uid}/license`, { headers: { Authorization: "Bearer " + s.token } });
-    if (!r.ok) { alert("No license available"); return; }
+    if (!r.ok) { toast("No license available", "err"); return; }
     const blob = await r.blob();
     window.open(URL.createObjectURL(blob), "_blank");
-  } catch (e) { alert(errText(e)); }
+  } catch (e) { toast(errText(e), "err"); }
 }

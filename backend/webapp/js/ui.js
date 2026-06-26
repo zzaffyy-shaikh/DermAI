@@ -33,12 +33,12 @@ export function layout(active, content) {
       <nav class="nav">${links}</nav>
       <div class="user">
         <div class="notif">
-          <button id="notifBtn" class="btn ghost sm" title="Notifications">🔔<span id="notifCount" class="notif-count" style="display:none"></span></button>
-          <div id="notifPanel" class="notif-panel" style="display:none"></div>
+          <button id="notifBtn" class="btn ghost sm" title="Notifications" aria-label="Notifications">🔔<span id="notifCount" class="notif-count" style="display:none"></span></button>
+          <div id="notifPanel" class="notif-panel" style="display:none" role="region" aria-label="Notifications list"></div>
         </div>
         <span class="role-chip ${s.role}">${s.role}</span>
         <span class="uid">${esc(s.name || s.username || s.uid)}</span>
-        <button id="logoutBtn" class="btn ghost sm">Logout</button>
+        <button id="logoutBtn" class="btn ghost sm" aria-label="Log out">Logout</button>
       </div>
     </header>
     <main class="content">${content}</main>`;
@@ -92,6 +92,22 @@ function setupNotifications() {
 
 export function modeBadge(mode) {
   return `<span class="badge b-${mode}">${mode}</span>`;
+}
+
+// Lightweight, non-blocking toast (replaces alert()). type: "info" | "ok" | "err".
+export function toast(message, type = "info") {
+  let host = document.getElementById("toastHost");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "toastHost";
+    host.className = "toast-host";
+    document.body.appendChild(host);
+  }
+  const el = document.createElement("div");
+  el.className = `toast toast-${type}`;
+  el.textContent = message;
+  host.appendChild(el);
+  setTimeout(() => { el.classList.add("leaving"); setTimeout(() => el.remove(), 250); }, 3200);
 }
 
 // Dermatological history fields (Rook's / Fitzpatrick framework) — shared by the

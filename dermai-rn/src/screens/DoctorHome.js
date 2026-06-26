@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator,
   StyleSheet, RefreshControl, Alert, Modal, Linking, Image,
@@ -11,6 +11,11 @@ import CallScreen from "./CallScreen";
 import MedicalHistoryScreen from "./MedicalHistoryScreen";
 import NotifBell from "./NotifBell";
 
+const TIMES = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
+const pad = (n) => String(n).padStart(2, "0");
+const dateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayLabel = (d) => d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+
 export default function DoctorHome({ session, onLogout }) {
   const [slots, setSlots] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -21,9 +26,12 @@ export default function DoctorHome({ session, onLogout }) {
   const [historyUid, setHistoryUid] = useState(null);
   const [solutions, setSolutions] = useState({});
 
-  // new-slot inputs
-  const [date, setDate] = useState("");   // YYYY-MM-DD
-  const [time, setTime] = useState("");   // HH:MM
+  // new-slot picker (tap a day + a time)
+  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d;
+  }), []);
+  const [selDay, setSelDay] = useState(null);   // Date
+  const [selTime, setSelTime] = useState(null); // "HH:MM"
 
   const load = async () => {
     setLoading(true); setNotDerm(null);
@@ -43,10 +51,10 @@ export default function DoctorHome({ session, onLogout }) {
   useEffect(() => { load(); }, []);
 
   const addSlot = async () => {
-    if (!date || !time) { Alert.alert("Add slot", "Enter both date (YYYY-MM-DD) and time (HH:MM)."); return; }
+    if (!selDay || !selTime) { Alert.alert("Add slot", "Tap a day and a time first."); return; }
     try {
-      await apiPost("/consult/availability", { slots: [`${date}T${time}:00`] });
-      setDate(""); setTime(""); load();
+      await apiPost("/consult/availability", { slots: [`${dateStr(selDay)}T${selTime}:00`] });
+      setSelTime(null); load();
     } catch (e) { Alert.alert("Error", e.message || String(e)); }
   };
   const removeSlot = async (id) => {
@@ -118,13 +126,33 @@ export default function DoctorHome({ session, onLogout }) {
         {/* availability */}
         <Text style={styles.section}>📅 My availability</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1 }]} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
-            <TextInput style={[styles.input, { width: 90, marginLeft: 8 }]} value={time} onChangeText={setTime} placeholder="HH:MM" />
-            <TouchableOpacity style={[styles.btn, { backgroundColor: colors.doctor, marginLeft: 8 }]} onPress={addSlot}>
-              <Text style={styles.btnText}>Add</Text>
-            </TouchableOpacity>
+          <Text style={styles.pickLabel}>Day</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {days.map((d) => {
+              const active = selDay && dateStr(selDay) === dateStr(d);
+              return (
+                <TouchableOpacity key={dateStr(d)} style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => setSelDay(d)}>
+                  <Text style={[styles.chipText, active && { color: "#fff" }]}>{dayLabel(d)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Text style={styles.pickLabel}>Time</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+            {TIMES.map((t) => {
+              const active = selTime === t;
+              return (
+                <TouchableOpacity key={t} style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => setSelTime(t)}>
+                  <Text style={[styles.chipText, active && { color: "#fff" }]}>{t}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.doctor, alignSelf: "flex-start", marginTop: 12 }]} onPress={addSlot}>
+            <Text style={styles.btnText}>+ Add {selDay && selTime ? `${dayLabel(selDay)} ${selTime}` : "slot"}</Text>
+          </TouchableOpacity>
           {slots.length === 0 && <Text style={{ color: colors.muted, marginTop: 10 }}>No slots yet.</Text>}
           {slots.map((s) => (
             <View key={s.id} style={styles.slotRow}>
@@ -219,5 +247,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center" },
   input: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#fff" },
   slotRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line, marginTop: 8 },
+  pickLabel: { fontSize: 12, fontWeight: "700", color: colors.muted, marginTop: 10, marginBottom: 6 },
+  chip: { borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, marginBottom: 8 },
+  chipActive: { backgroundColor: colors.doctor, borderColor: colors.doctor },
+  chipText: { color: colors.ink, fontSize: 13 },
   error: { color: colors.err, marginBottom: 10 },
 });

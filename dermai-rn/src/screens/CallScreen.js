@@ -63,7 +63,8 @@ export default function CallScreen({ room, name, onClose }) {
         renderLoading={() => (
           <View style={styles.loading}>
             <ActivityIndicator size="large" color={colors.patient} />
-            <Text style={{ marginTop: 10, color: colors.muted }}>Connecting to call…</Text>
+            <Text style={{ marginTop: 12, color: "#cbd5e1", fontSize: 15 }}>Connecting you to the consultation…</Text>
+            <Text style={{ marginTop: 6, color: "#64748b", fontSize: 12.5 }}>This can take a few seconds. Allow camera & microphone when asked.</Text>
           </View>
         )}
       />

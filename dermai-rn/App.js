@@ -1,4 +1,7 @@
-import "react-native-gesture-handler";
+// Load gesture-handler only where its native module exists (custom dev build).
+// In Expo Go that native module isn't bundled, and a hard `import` crashes the app
+// with "RNGestureHandlerModule could not be found", so we require it defensively.
+try { require("react-native-gesture-handler"); } catch (e) { /* Expo Go — not available */ }
 import React, { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { KeyboardProvider } from "./src/kb";

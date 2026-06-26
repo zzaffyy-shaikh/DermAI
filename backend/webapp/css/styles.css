@@ -170,3 +170,36 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--patient)
 .notif-item:last-child{border-bottom:none}
 .notif-item.unread{background:rgba(47,107,255,.07)}
 .notif-item .meta{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ---------- lay-friendly result framing ---------- */
+.result-headline{background:linear-gradient(135deg,rgba(47,107,255,.08),rgba(124,77,255,.08));
+  border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:14.5px;
+  line-height:1.5;color:var(--ink);margin-bottom:4px}
+.disclaimer{margin-top:10px;font-size:12.5px;color:var(--muted);background:#fff7ed;
+  border:1px solid #fed7aa;border-radius:10px;padding:9px 12px}
+
+/* ---------- photo guidance / blurry warning ---------- */
+.photo-tips{margin-top:12px;font-size:12.5px;color:var(--muted);background:#eff6ff;
+  border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;line-height:1.5}
+.warn-box{margin-bottom:10px;font-size:13px;color:#92400e;background:#fffbeb;
+  border:1px solid #fde68a;border-radius:10px;padding:10px 12px;line-height:1.5}
+
+/* ---------- toasts ---------- */
+.toast-host{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{pointer-events:auto;min-width:220px;max-width:90vw;padding:12px 16px;border-radius:12px;
+  font-size:13.5px;font-weight:600;color:#fff;box-shadow:var(--shadow-lg);
+  background:#334155;animation:pop .2s ease both}
+.toast-ok{background:linear-gradient(135deg,#16a34a,#22c55e)}
+.toast-err{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.toast-info{background:linear-gradient(135deg,#2f6bff,#7c4dff)}
+.toast.leaving{opacity:0;transform:translateY(8px);transition:opacity .25s, transform .25s}
+
+/* ---------- accessibility: keyboard focus visibility ---------- */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, .nav-link:focus-visible {
+  outline:3px solid #2f6bff;outline-offset:2px;border-radius:8px;
+}
+
+/* ---------- onboarding ---------- */
+.onboard{border-left:4px solid var(--patient);background:linear-gradient(135deg,#fff,#f5f8ff)}

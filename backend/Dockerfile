@@ -1,31 +1,28 @@
-# CPU image for the DermAI backend (API + web app).
-# For GPU inference, switch the base to an nvidia/cuda image and install the CUDA build of torch.
+# DermAI backend — production image (API + bundled web app).
+# Multi-arch: builds on Oracle Cloud's free ARM (Ampere A1) and on x86. CPU-only
+# inference — on ARM the default PyPI torch wheels are already CPU builds.
+# Build from the REPO ROOT (so the model in codes/ is in context):
+#   docker build -f backend/Dockerfile -t dermai-backend .
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-WORKDIR /app
+WORKDIR /app/backend
 
-# system deps for Pillow / OpenCV-free stack
+# small runtime libs some wheels expect
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libjpeg62-turbo libpng16-16 \
- && rm -rf /var/lib/apt/lists/*
+        libjpeg62-turbo libpng16-16 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# install CPU torch first (smaller), then the rest
-RUN pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Python deps first so this layer caches across code changes.
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# app code + frontends + classes.json
-COPY app ./app
-COPY classes.json ./
-COPY webapp ./webapp
-COPY static ./static
-
-# model is provided at runtime via a volume (see DEPLOYMENT.md) to keep the image small
-ENV DERMAI_MODEL_PATH=/models/model.pth \
-    DERMAI_AUTH_MODE=prod
+# Application code + bundled web app + the honest trained model (Git LFS).
+COPY backend/ /app/backend/
+COPY codes/convnext_skin_best.pth /app/codes/convnext_skin_best.pth
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

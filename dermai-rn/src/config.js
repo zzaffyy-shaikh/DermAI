@@ -3,7 +3,7 @@
 // - Expo Go on a real phone (same Wi-Fi): use your PC's LAN IP, e.g.
 //     export const BASE_URL = "http://192.168.1.50:8000";
 //   and start the backend with: uvicorn app.main:app --host 0.0.0.0 --port 8000
-export const BASE_URL = "http://192.168.1.9:8000";
+export const BASE_URL = "http://192.168.1.2:8000";
 
 // Base URL for video consultations (Jitsi Meet — free, no account needed).
 export const VIDEO_BASE = "https://meet.jit.si";
