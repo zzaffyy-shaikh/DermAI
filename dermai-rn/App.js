@@ -8,6 +8,7 @@ import { KeyboardProvider } from "./src/kb";
 
 import { loadSession, saveSession, clearSession } from "./src/session";
 import { setToken, apiPost } from "./src/api";
+import { registerForPush } from "./src/push";
 import { colors } from "./src/theme";
 import LoginScreen from "./src/screens/LoginScreen";
 import PatientHome from "./src/screens/PatientHome";
@@ -22,16 +23,23 @@ function Root() {
   useEffect(() => {
     (async () => {
       const s = await loadSession();
-      if (s) setToken(s.token);
+      if (s) { setToken(s.token); registerPush(); }
       setSession(s);
       setLoading(false);
     })();
   }, []);
 
+  // Register this device for phone push notifications (best-effort).
+  const registerPush = async () => {
+    const token = await registerForPush();
+    if (token) { try { await apiPost("/notifications/register-token", { token }); } catch (_) {} }
+  };
+
   const onLogin = async (s) => {
     setToken(s.token);
     await saveSession(s);
     setSession(s);
+    registerPush();
   };
 
   const onLogout = async () => {

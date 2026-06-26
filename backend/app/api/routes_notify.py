@@ -15,6 +15,19 @@ class MarkReadRequest(BaseModel):
     ids: list[str] | None = None        # None = mark all read
 
 
+class RegisterTokenRequest(BaseModel):
+    token: str                          # Expo push token from the mobile app
+
+
+@router.post("/register-token")
+async def register_token(
+    body: RegisterTokenRequest,
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    notification_store.register_token(user.uid, body.token)
+    return {"ok": True}
+
+
 @router.get("", response_model=list[Notification])
 async def list_notifications(user: CurrentUser = Depends(get_current_user)) -> list[Notification]:
     return notification_store.list_for(user.uid)

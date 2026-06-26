@@ -165,6 +165,13 @@ def test_patient_can_cancel_appointment(client):
     assert client.post(f"/consult/{case['id']}/cancel", headers=auth(t2)).status_code == 404
 
 
+def test_register_push_token(client):
+    token, _ = diagnosed_patient(client, "pushy")
+    r = client.post("/notifications/register-token", headers=auth(token),
+                    json={"token": "ExponentPushToken[abc123]"})
+    assert r.status_code == 200 and r.json()["ok"] is True
+
+
 def test_non_dermatologist_cannot_consult(client):
     """DermAI: a verified non-dermatologist is barred from online consults."""
     token, _ = diagnosed_patient(client, "harry")
