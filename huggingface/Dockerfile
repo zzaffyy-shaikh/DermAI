@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 # Public repo includes backend/, webapp/ and the model in codes/ (Git LFS).
+# The ADD line below changes whenever a new commit lands, busting Docker's cache so
+# every rebuild pulls the LATEST code instead of reusing a stale cached git clone.
+ADD https://api.github.com/repos/zzaffyy-shaikh/DermAI/commits/main /tmp/dermai-head.json
 RUN git clone --depth 1 https://github.com/zzaffyy-shaikh/DermAI.git . && git lfs pull
 
 WORKDIR /app/backend
