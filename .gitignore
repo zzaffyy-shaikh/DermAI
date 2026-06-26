@@ -7,6 +7,9 @@
 *.keystore
 **/serviceAccount*.json
 **/firebase*.json
+**/*firebase-adminsdk*.json
+**/google-services.json
+firebase key/
 **/client_secret*.json
 *client_secret*
 
