@@ -53,7 +53,12 @@ def _section(pdf: _Report, title: str) -> None:
 def _kv(pdf: _Report, key: str, value: str) -> None:
     pdf.set_x(pdf.l_margin)
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(45, 7, _s(key))
+    key_s = _s(key)
+    # Size the label column to the actual text width (min 40mm) so long labels —
+    # e.g. "Skin phototype (Fitzpatrick):" — never overflow into / overlap the value.
+    avail = pdf.w - pdf.l_margin - pdf.r_margin
+    kw = min(max(40.0, pdf.get_string_width(key_s) + 4), avail - 30)
+    pdf.cell(kw, 7, key_s)
     pdf.set_font("Helvetica", "", 11)
     pdf.multi_cell(0, 7, _s(value), new_x="LMARGIN", new_y="NEXT")
 
