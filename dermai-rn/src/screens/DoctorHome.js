@@ -51,9 +51,15 @@ export default function DoctorHome({ session, onLogout }) {
   useEffect(() => { load(); }, []);
 
   const addSlot = async () => {
-    if (!selDay || !selTime) { Alert.alert("Add slot", "Tap a day and a time first."); return; }
+    if (!selDay) { Alert.alert("Add slot", "Tap a day first."); return; }
+    const m = (selTime || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m || +m[1] > 23 || +m[2] > 59) {
+      Alert.alert("Add slot", "Enter a valid time like 09:30, 13:45 or 18:05.");
+      return;
+    }
+    const time = `${String(+m[1]).padStart(2, "0")}:${m[2]}`;
     try {
-      await apiPost("/consult/availability", { slots: [`${dateStr(selDay)}T${selTime}:00`] });
+      await apiPost("/consult/availability", { slots: [`${dateStr(selDay)}T${time}:00`] });
       setSelTime(null); load();
     } catch (e) { Alert.alert("Error", e.message || String(e)); }
   };
@@ -138,8 +144,10 @@ export default function DoctorHome({ session, onLogout }) {
               );
             })}
           </ScrollView>
-          <Text style={styles.pickLabel}>Time</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+          <Text style={styles.pickLabel}>Time — type any (24-hour, e.g. 13:45) or tap a quick time</Text>
+          <TextInput style={styles.input} value={selTime || ""} onChangeText={setSelTime}
+            placeholder="HH:MM  (e.g. 13:45)" maxLength={5} />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
             {TIMES.map((t) => {
               const active = selTime === t;
               return (
